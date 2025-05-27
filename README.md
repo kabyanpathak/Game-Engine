@@ -1,1 +1,1 @@
-Creating a game engine using openGL as graphics framework
+Creating a game engine using WGPU as graphics framework
