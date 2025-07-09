@@ -1,34 +1,36 @@
+// engine/src/lib.rs
+pub mod state;
+pub mod app;
+
 use env_logger;
+use crate::app::App;
+use crate::state::State;
 use winit::{
-    event::{Event, WindowEvent, KeyEvent, ElementState},
-    event_loop::EventLoop,
-    keyboard::{KeyCode, PhysicalKey},
-    window::WindowBuilder,
+    application::ApplicationHandler, 
+    event::*, 
+    event_loop::{ActiveEventLoop, EventLoop}, 
+    keyboard::{KeyCode, PhysicalKey}, 
+    window::Window
 };
 
-pub fn run() {
-    env_logger::init();
-    let event_loop = EventLoop::new().unwrap();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+pub fn run() -> anyhow::Result<()> {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        env_logger::init();
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        console_log::init_with_level(log::Level::Info).unwrap_throw();
+    }
+
+    let event_loop = EventLoop::with_user_event().build()?;
+    let mut app = App::new(
+        #[cfg(target_arch = "wasm32")]
+        &event_loop,
+    );
+    event_loop.run_app(&mut app)?;
     
-    // NOTE event_loop.run returns a 'Result'
-    let _ = event_loop.run(move |event, control_flow| match event {
-        Event::WindowEvent {
-            ref event,
-            window_id,
-        } if window_id == window.id() => match event {
-            WindowEvent::CloseRequested
-            | WindowEvent::KeyboardInput {
-                event:
-                    KeyEvent {
-                        state: ElementState::Pressed,
-                        physical_key: PhysicalKey::Code(KeyCode::Escape),
-                        ..
-                    },
-                ..
-            } => control_flow.exit(),
-            _ => {}
-        },
-        _ => {}
-    });
+    Ok(())
 }
+
+// Optional: add run wasm
