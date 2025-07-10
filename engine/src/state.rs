@@ -5,7 +5,7 @@ use winit::{
     event::*,
     event_loop::{ActiveEventLoop, EventLoop},
     keyboard::{KeyCode, PhysicalKey},
-    window::Window
+    window::Window,
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -46,8 +46,8 @@ impl State {
                 force_fallback_adapter: false,
             })
             .await?;
-        
-        // The features field on DeviceDescriptor allows 
+
+        // The features field on DeviceDescriptor allows
         // us to specify the extra features we want
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
@@ -64,7 +64,9 @@ impl State {
             .await?;
 
         let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = surface_caps.formats.iter()
+        let surface_format = surface_caps
+            .formats
+            .iter()
             .find(|f| f.is_srgb())
             .copied()
             .unwrap_or(surface_caps.formats[0]);
@@ -79,13 +81,13 @@ impl State {
             desired_maximum_frame_latency: 2,
         };
 
-        Ok(Self{
-            surface:surface,
-            device:device,
-            queue:queue,
-            config:config,
-            is_surface_configured:false,
-            window:window
+        Ok(Self {
+            surface: surface,
+            device: device,
+            queue: queue,
+            config: config,
+            is_surface_configured: false,
+            window: window,
         })
     }
 
@@ -117,10 +119,14 @@ impl State {
         }
 
         let output = self.surface.get_current_texture()?;
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render encoder"),
-        });
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render encoder"),
+            });
 
         let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Render pass"),

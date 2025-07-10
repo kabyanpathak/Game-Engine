@@ -2,11 +2,11 @@
 use crate::state::State;
 use std::sync::Arc;
 use winit::{
-    application::ApplicationHandler, 
-    event::*, 
-    event_loop::{ActiveEventLoop, EventLoop}, 
-    keyboard::{KeyCode, PhysicalKey}, 
-    window::Window
+    application::ApplicationHandler,
+    event::*,
+    event_loop::{ActiveEventLoop, EventLoop},
+    keyboard::{KeyCode, PhysicalKey},
+    window::Window,
 };
 
 pub struct App {
@@ -30,13 +30,13 @@ impl App {
 impl ApplicationHandler<State> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         #[allow(unused_mut)]
-        let mut window_attributes = Window::default_attributes();
+        let mut window_attributes = Window::default_attributes().with_title("Gooner Engine");
 
         #[cfg(target_arch = "wasm32")]
         {
             use wasm_bindgen::JsCast;
             use winit::platform::web::WindowAttributesExtWebSys;
-            
+
             const CANVAS_ID: &str = "canvas";
 
             let window = wgpu::web_sys::window().unwrap_throw();
@@ -51,7 +51,7 @@ impl ApplicationHandler<State> for App {
         #[cfg(not(target_arch = "wasm32"))]
         {
             // If we are not on web we can use pollster to
-            // await the 
+            // await the
             self.state = Some(pollster::block_on(State::new(window)).unwrap());
         }
 
@@ -61,13 +61,15 @@ impl ApplicationHandler<State> for App {
             // proxy to send the results to the event loop
             if let Some(proxy) = self.proxy.take() {
                 wasm_bindgen_futures::spawn_local(async move {
-                    assert!(proxy
-                        .send_event(
-                            State::new(window)
-                                .await
-                                .expect("Unable to create canvas!!!")
-                        )
-                        .is_ok())
+                    assert!(
+                        proxy
+                            .send_event(
+                                State::new(window)
+                                    .await
+                                    .expect("Unable to create canvas!!!")
+                            )
+                            .is_ok()
+                    )
                 });
             }
         }
@@ -86,7 +88,7 @@ impl ApplicationHandler<State> for App {
         }
         self.state = Some(event);
     }
-    
+
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -101,18 +103,16 @@ impl ApplicationHandler<State> for App {
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
-            WindowEvent::RedrawRequested => {
-                match state.render() {
-                    Ok(_) => {},
-                    Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                        let size = state.window_size();
-                        state.resize(size.width, size.height);
-                    },
-                    Err(e) => {
-                        log::error!("Unable to render { }", e); 
-                    },
+            WindowEvent::RedrawRequested => match state.render() {
+                Ok(_) => {}
+                Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                    let size = state.window_size();
+                    state.resize(size.width, size.height);
                 }
-            }
+                Err(e) => {
+                    log::error!("Unable to render { }", e);
+                }
+            },
             WindowEvent::KeyboardInput {
                 event:
                     KeyEvent {
