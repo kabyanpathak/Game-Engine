@@ -1,16 +1,16 @@
 // engine/src/lib.rs
-pub mod state;
 pub mod app;
+pub mod state;
 
-use env_logger;
 use crate::app::App;
 use crate::state::State;
+use env_logger;
 use winit::{
-    application::ApplicationHandler, 
-    event::*, 
-    event_loop::{ActiveEventLoop, EventLoop}, 
-    keyboard::{KeyCode, PhysicalKey}, 
-    window::Window
+    application::ApplicationHandler,
+    event::*,
+    event_loop::{ActiveEventLoop, EventLoop},
+    keyboard::{KeyCode, PhysicalKey},
+    window::Window,
 };
 
 pub fn run() -> anyhow::Result<()> {
@@ -29,8 +29,6 @@ pub fn run() -> anyhow::Result<()> {
         &event_loop,
     );
     event_loop.run_app(&mut app)?;
-    
+
     Ok(())
 }
-
-// Optional: add run wasm

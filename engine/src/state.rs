@@ -46,7 +46,7 @@ impl State {
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
-                compat_surface: Some(&surface),
+                compatible_surface: Some(&surface),
                 force_fallback_adapter: false,
             })
             .await?;
@@ -66,21 +66,59 @@ impl State {
                 trace: wgpu::Trace::Off,
             })
             .await?;
+
+        let surface_caps = surface.get_capabilities(&adapter);
+
+        //assumes sRGB colors, if not colors may be darker
+        let surface_format = surface_caps
+            .formats
+            .iter()
+            .find(|f| f.is_srgb())
+            .copied()
+            .unwrap_or_else(|| surface_caps.formats[0]);
+
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: surface_format,
+            width: size.width,
+            height: size.height,
+            present_mode: surface_caps.present_modes[0],
+            alpha_mode: surface_caps.alpha_modes[0],
+            view_formats: vec![],
+            desired_maximum_frame_latency: 2,
+        };
+
+        Ok(Self {
+            surface,
+            device,
+            queue,
+            config,
+            is_surface_configured: false,
+            window,
+        })
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
-        todo!();
+        if width > 0 && height > 0 {
+            self.config.width = width;
+            self.config.height = height;
+            self.surface.configure(&self.device, &self.config);
+            self.is_surface_configured = true;
+        }
     }
 
     pub fn handle_key(&self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
-        todo!();
+        match (code, is_pressed) {
+            (KeyCode::Escape, true) => event_loop.exit(),
+            _ => {}
+        }
     }
 
     pub fn update(&mut self) {
         todo!("Not done yet!");
     }
 
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        todo!();
+    pub fn render(&mut self) {
+        self.window.request_redraw();
     }
 }
