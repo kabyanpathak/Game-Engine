@@ -277,7 +277,8 @@ impl State {
         let pipeline = self.pipelines.get(&self.current_pipeline).unwrap();
         render_pass.set_pipeline(pipeline);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.draw(0..3, 0..1);
+        render_pass.draw(0..3, 0..1); // TODO: Swap out hard coded 3 vertices to len(VERTICES) from
+                                      // buffer
 
         drop(render_pass);
 
