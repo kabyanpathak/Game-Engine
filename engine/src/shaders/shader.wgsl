@@ -1,4 +1,4 @@
-// Vertex shader
+// engine/src/shaders/shader.wgsl
 
 struct VertexOutput {
   @builtin(position) clip_position: vec4<f32>,
