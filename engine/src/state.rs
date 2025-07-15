@@ -1,5 +1,8 @@
 // engine/src/state.rs
+use crate::vertex_buffer::Vertex;
 use std::sync::Arc;
+use std::collections::HashMap;
+use wgpu::util::DeviceExt;
 use winit::{
     application::ApplicationHandler,
     event::*,
@@ -11,18 +14,30 @@ use winit::{
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-// Store game state
-// Maintain encapsulation by adding util functions
-// instead of setting attributes to pub
+// Used for managing rendering pipelines via hashmap
+#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
+enum PipelineType {
+    Default,
+    Experimental,
+}
+
 pub struct State {
     surface: wgpu::Surface<'static>,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
-    render_pipeline: wgpu::RenderPipeline,
+    current_pipeline: PipelineType,
+    pipelines: HashMap<PipelineType, wgpu::RenderPipeline>,
+    vertex_buffer: wgpu::Buffer,
     window: Arc<Window>,
 }
+
+const VERTICES: &[Vertex] = &[
+    Vertex { position: [0.0, 0.5, 0.0], color: [1.0, 0.0, 0.0] },
+    Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 1.0, 0.0] },
+    Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
+];
 
 impl State {
     pub fn window_size(&self) -> winit::dpi::PhysicalSize<u32> {
@@ -82,6 +97,14 @@ impl State {
             desired_maximum_frame_latency: 2,
         };
 
+        let vertex_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Vertex Buffer"),
+                contents: bytemuck::cast_slice(VERTICES),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
+
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("./shaders/shader.wgsl").into()),
@@ -131,13 +154,63 @@ impl State {
             cache: None,
         });
 
+        // Experimental pipeline
+        let ex_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Experimental shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("./shaders/ex_shader.wgsl").into()),
+        });
+
+        let ex_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Render pipeline for experimental shader"),
+            layout: Some(&render_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &ex_shader,
+                entry_point: Some("vs_main"),
+                buffers: &[Vertex::desc()],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &ex_shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: config.format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: Some(wgpu::Face::Back),
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+            cache: None,
+        });
+
+        let mut pipelines: HashMap<PipelineType, wgpu::RenderPipeline> = HashMap::new();
+        pipelines.insert(PipelineType::Default, render_pipeline);
+        pipelines.insert(PipelineType::Experimental, ex_pipeline);
+
         Ok(Self{
             surface:surface,
             device:device,
             queue:queue,
             config:config,
             is_surface_configured:false,
-            render_pipeline:render_pipeline,
+            current_pipeline: PipelineType::Default,
+            pipelines:pipelines,
+            vertex_buffer:vertex_buffer,
             window:window,
         })
     }
@@ -151,9 +224,15 @@ impl State {
         }
     }
 
-    pub fn handle_key(&self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
+    pub fn handle_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
         match (code, is_pressed) {
             (KeyCode::Escape, true) => event_loop.exit(),
+            (KeyCode::Space, true) => {
+                self.current_pipeline = match self.current_pipeline {
+                    PipelineType::Default => PipelineType::Experimental,
+                    PipelineType::Experimental => PipelineType::Default,
+                };
+            },
             _ => {}
         }
     }
@@ -194,8 +273,12 @@ impl State {
             occlusion_query_set: None,
             timestamp_writes: None,
         });
-        render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.draw(0..3, 0..1);
+
+        let pipeline = self.pipelines.get(&self.current_pipeline).unwrap();
+        render_pass.set_pipeline(pipeline);
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        render_pass.draw(0..3, 0..1); // TODO: Swap out hard coded 3 vertices to len(VERTICES) from
+                                      // buffer
 
         drop(render_pass);
 

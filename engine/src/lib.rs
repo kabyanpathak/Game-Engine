@@ -1,6 +1,7 @@
 // engine/src/lib.rs
 pub mod state;
 pub mod app;
+pub mod vertex_buffer;
 
 use env_logger;
 use crate::app::App;
