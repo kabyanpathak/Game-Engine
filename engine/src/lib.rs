@@ -32,5 +32,3 @@ pub fn run() -> anyhow::Result<()> {
     
     Ok(())
 }
-
-// Optional: add run wasm
