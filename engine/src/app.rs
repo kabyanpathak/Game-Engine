@@ -48,9 +48,9 @@ impl ApplicationHandler<State> for App {
 
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
 
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(not(target_arch = "wasm32"))]
         {
-            self.state = Some(pollster::block_on(state::new(window)).unwrap());
+            self.state = Some(pollster::block_on(State::new(window)).unwrap());
         }
 
         #[cfg(target_arch = "wasm32")]
@@ -96,7 +96,17 @@ impl ApplicationHandler<State> for App {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
-                state.render();
+               match state.render() {
+                    Ok(_) => {}
+                    // Reconfigure the surface if it's lost or outdated
+                    Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                        let size = state.window_size();
+                        state.resize(size.width, size.height);
+                    }
+                    Err(e) => {
+                        log::error!("Unable to render {}", e);
+                    }
+               }            
             }
             WindowEvent::KeyboardInput {
                 event:
