@@ -96,7 +96,7 @@ impl ApplicationHandler<State> for App {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
-               match state.render() {
+                match state.render() {
                     Ok(_) => {}
                     // Reconfigure the surface if it's lost or outdated
                     Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
@@ -106,7 +106,7 @@ impl ApplicationHandler<State> for App {
                     Err(e) => {
                         log::error!("Unable to render {}", e);
                     }
-               }            
+                }
             }
             WindowEvent::KeyboardInput {
                 event:

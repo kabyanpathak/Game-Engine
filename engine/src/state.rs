@@ -115,7 +115,7 @@ impl State {
     }
 
     pub fn update(&mut self) {
-        todo!("Not done yet!");
+        //BRITISH BRODCASTING CORPORATION
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -126,10 +126,16 @@ impl State {
         }
 
         let output = self.surface.get_current_texture()?;
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-        });
+
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
 
         let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Render Pass"),
@@ -151,7 +157,9 @@ impl State {
             timestamp_writes: None,
         });
 
-        drop(_render_pass);
+        //ends the borrow
+        std::mem::drop(_render_pass);
+
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
 
