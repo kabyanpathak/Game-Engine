@@ -1,5 +1,9 @@
 // engine/src/state.rs
-use std::sync::Arc;
+use env_logger::fmt::Color;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use winit::{
     application::ApplicationHandler,
     event::*,
@@ -112,6 +116,10 @@ impl State {
             (KeyCode::Escape, true) => event_loop.exit(),
             _ => {}
         }
+    }
+
+    pub fn handle_mouse(&self) {
+        todo!();
     }
 
     pub fn update(&mut self) {
